@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"time"
-	"proctorNew/etcdPoc/internal/app/service/infra/db/etcd"
+	"proctorNew/internal/app/service/infra/db/etcd"
 )
 
 var (
@@ -13,23 +13,26 @@ var (
 )
 
 func main() {
-	ctx, _ := context.WithTimeout(context.Background(), requestTimeout)
+
+	ctx,_:= context.WithTimeout(context.Background(), requestTimeout)
 
 	client := etcd.NewClient()
+	defer client.Close()
 
-	//_ = client.DeleteKey(ctx,"key")
 
-	pr, _ := client.PutValue(ctx,"key","value")
+	_ = client.DeleteKey(ctx,"key")
 
-	res,_ :=  client.GetValue(ctx,"key", pr)
+	pr,_:=client.PutValue(ctx,"key","newvalue")
+	_,_ =client.GetValueWithRevision(ctx,"key",pr)
 
-	pr,_ = client.PutValue(ctx,"key","newValue")
+	fmt.Println(pr.Header.Revision)
 
-	res,_ =  client.GetValue(ctx,"key",pr)
+	res,_ :=  client.GetValue(ctx,"key")
 	for _,data := range res.Kvs{
 		fmt.Println(string(data.Key),string(data.Value))
 	}
-	_,_ = client.GetRevisionValue(ctx,"key");
+
+
 
 
 

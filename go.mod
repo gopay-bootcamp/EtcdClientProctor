@@ -1,4 +1,4 @@
-module proctorNew/etcdPoc
+module proctorNew
 
 replace (
 	github.com/coreos/bbolt => go.etcd.io/bbolt v1.3.3

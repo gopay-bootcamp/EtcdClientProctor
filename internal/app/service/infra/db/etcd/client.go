@@ -10,9 +10,10 @@ import (
 type EtcdClient interface {
 	DeleteKey(ctx context.Context,key string) error
 	PutValue(ctx context.Context, key string, value string) (*clientv3.PutResponse,error)
-	GetValue(ctx context.Context, key string ,pr *clientv3.PutResponse) (*clientv3.GetResponse, error)
-	GetRevisionValue(ctx context.Context, key string) (*clientv3.GetResponse, error)
-	Close() error
+	GetValue(ctx context.Context, key string) (*clientv3.GetResponse, error)
+	GetValueWithRevision(ctx context.Context, key string, pr *clientv3.PutResponse) (*clientv3.GetResponse, error)
+	Close()
+	SetWatchOnKey(ctx context.Context, key string) clientv3.WatchChan
 }
 
 type etcdClient struct {
@@ -33,7 +34,6 @@ func NewClient() EtcdClient{
 		DialTimeout: dialTimeout,
 		Endpoints:   []string{"localhost:2379"},
 	})
-
 	return &etcdClient{
 		db:db,
 	}
@@ -55,15 +55,7 @@ func (client *etcdClient) PutValue(ctx context.Context, key string,value string)
 	return pr.OpResponse().Put(),nil
 }
 
-func (client *etcdClient) GetValue(ctx context.Context, key string, pr *clientv3.PutResponse) (*clientv3.GetResponse,error){
-	res, err := client.db.Get(ctx,key,clientv3.WithRev(2))
-	if err != nil {
-		return nil,err
-	}
-	return res.OpResponse().Get(),nil
-}
-
-func (client *etcdClient) GetRevisionValue(ctx context.Context, key string) (*clientv3.GetResponse,error){
+func (client *etcdClient) GetValue(ctx context.Context, key string) (*clientv3.GetResponse,error){
 	res, err := client.db.Get(ctx,key)
 	if err != nil {
 		return nil,err
@@ -71,7 +63,22 @@ func (client *etcdClient) GetRevisionValue(ctx context.Context, key string) (*cl
 	return res.OpResponse().Get(),nil
 }
 
-func (client *etcdClient) Close() error {
+func (client *etcdClient) GetValueWithRevision(ctx context.Context, key string, pr *clientv3.PutResponse) (*clientv3.GetResponse,error){
+	res, err := client.db.Get(ctx,key,clientv3.WithLastRev()...)
+	if err != nil {
+		return nil,err
+	}
+	return res.OpResponse().Get(),nil
+}
+
+func (client *etcdClient) SetWatchOnKey(ctx context.Context, key string) clientv3.WatchChan {
+	watchChan := client.db.Watch(ctx,key)
+	fmt.Println("set WATCH on " + key)
+	return watchChan
+
+}
+
+func (client *etcdClient) Close(){
 	fmt.Println("Closing connections to db")
-	return client.db.Close()
+	defer client.db.Close()
 }
