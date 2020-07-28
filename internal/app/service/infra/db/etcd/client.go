@@ -24,7 +24,7 @@ var (
 	dialTimeout    = 2 * time.Second
 	requestTimeout = 10 * time.Second
 )
-
+// function to create new client of etcd database
 func NewClient() EtcdClient {
 
 	db, _ := clientv3.New(clientv3.Config{
@@ -36,6 +36,7 @@ func NewClient() EtcdClient {
 	}
 }
 
+// function to delete the key provided
 func (client *etcdClient) DeleteKey(ctx context.Context, key string) error {
 	_, err := client.db.Delete(ctx, key)
 	if err != nil {
@@ -61,7 +62,7 @@ func (client *etcdClient) GetValue(ctx context.Context, key string) (*clientv3.G
 }
 
 func (client *etcdClient) GetValueWithRevision(ctx context.Context, key string, pr *clientv3.PutResponse) (*clientv3.GetResponse, error) {
-	res, err := client.db.Get(ctx, key, clientv3.WithLastRev()...)
+	res, err := client.db.Get(ctx, key, clientv3.WithRev(pr.Header.Revision))
 	if err != nil {
 		return nil, err
 	}

@@ -1,90 +1,82 @@
 package etcd
 
 import (
-	"fmt"
-	"github.com/stretchr/testify/assert"
+	//"fmt"
+	//"github.com/stretchr/testify/assert"
 	"context"
 	"testing"
-
-	"github.com/coreos/etcd/clientv3"
 )
 
 func TestNewClient(t *testing.T) {
-	db, err := clientv3.New(clientv3.Config{
-		DialTimeout: dialTimeout,
-		Endpoints:   []string{"localhost:2379"},
-	})
-	defer db.Close()
-	assert.NoError(t, err)
+	client:= NewClient();
+	defer client.Close()
+	if client == nil{
+		t.Error("client returned nil")
+	}
 }
 
 func TestEtcdClient_PutValue(t *testing.T) {
-	db, err := clientv3.New(clientv3.Config{
-		DialTimeout: dialTimeout,
-		Endpoints:   []string{"localhost:2379"},
-	})
-	defer db.Close()
+	client:= NewClient();
+	defer client.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	_, err = db.Put(ctx, "test_key", "test_value")
+	_, err := client.PutValue(ctx, "test_key", "test_value")
 	cancel()
-	assert.NoError(t, err)
+	if err != nil{
+		t.Error("Put value returned error")
+	}
 }
 
 func TestEtcdClient_DeleteKey(t *testing.T) {
-	db, _ := clientv3.New(clientv3.Config{
-		DialTimeout: dialTimeout,
-		Endpoints:   []string{"localhost:2379"},
-	})
-	defer db.Close()
+	client:= NewClient();
+	defer client.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	gresp, err := db.Get(ctx, "test_key", clientv3.WithPrefix())
-	assert.NoError(t, err)
-	fmt.Println("Finding keys: ", gresp.Kvs)
-	resp, err := db.Delete(ctx, "test_key", clientv3.WithPrefix())
+	_, err := client.GetValue(ctx, "test_key")
+
+	err = client.DeleteKey(ctx, "test_key")
 	cancel()
-	assert.NoError(t, err)
-	fmt.Println(resp)
+	if err != nil{
+		t.Error("error in deleting key")
+	}
 }
 
 func TestEtcdClient_GetValue(t *testing.T) {
-	db, _ := clientv3.New(clientv3.Config{
-		DialTimeout: dialTimeout,
-		Endpoints:   []string{"localhost:2379"},
-	})
-	defer db.Close()
-
-	_, err := db.Put(context.TODO(), "test_key2", "test_value2")
-	assert.NoError(t, err)
-
+	client:= NewClient();
+	defer client.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
-	resp, err := db.Get(ctx, "test_key2")
-	assert.NoError(t, err)
+	_, err := client.PutValue(ctx, "test_key2", "test_value2")
+	if err != nil{
+		t.Error("error in get value");
+	}
+	_, err = client.GetValue(ctx, "test_key2")
 	cancel()
-
-	fmt.Println("Get response: ", resp.Kvs)
+	if err!= nil{
+		t.Error("error in get value")
+	}
 }
-
 func TestEtcdClient_GetValueWithRevision(t *testing.T) {
-	db, _ := clientv3.New(clientv3.Config{
-		DialTimeout: dialTimeout,
-		Endpoints:   []string{"localhost:2379"},
-	})
-	defer db.Close()
-	resp1, err := db.Put(context.TODO(), "test_key2", "test_value2")
-	assert.NoError(t, err)
-	resp2, err := db.Put(context.TODO(), "test_key2", "test_value3")
-	assert.NoError(t, err)
-
-
+	client:= NewClient();
+	defer client.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
 
-	resp, err := db.Get(ctx, "test_key2", clientv3.WithRev(resp1.Header.Revision))
-	assert.NoError(t, err)
-	fmt.Println("Get response v1: ", resp.Kvs)
+	resp1, err := client.PutValue(ctx, "test_key2", "test_value2")
+	if err != nil{
+		t.Error("error in put value");
+	}
+	resp2, err := client.PutValue(ctx, "test_key2", "test_value3")
+	if err != nil{
+		t.Error("error in put value");
+	}
 
-	resp, err = db.Get(ctx, "test_key2", clientv3.WithRev(resp2.Header.Revision))
-	assert.NoError(t, err)
-	fmt.Println("Get response v2: ", resp.Kvs)
 
+
+	_, err = client.GetValueWithRevision(ctx, "test_key2", resp1)
+	if err != nil{
+		t.Error("error in get value");
+	}
+
+	_, err = client.GetValueWithRevision(ctx, "test_key2", resp2)
+	if err != nil{
+		t.Error("error in get value");
+	}
 	cancel()
 }

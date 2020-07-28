@@ -31,10 +31,4 @@ func main() {
 	for _,data := range res.Kvs{
 		fmt.Println(string(data.Key),string(data.Value))
 	}
-
-
-
-
-
-
 }
